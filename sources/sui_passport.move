@@ -14,6 +14,13 @@ use sui_passport::stamp::{Self, Stamp};
 
 public struct SUI_PASSPORT has drop {}
 
+// ====== Constants =======
+const EXHIBIT_MAX: u64 = 3;
+
+// ====== Errors =======
+const ETooMuchExhibit: u64 = 1000;
+const EInvalidExhibit: u64 = 1001;
+
 #[allow(unused_field)]
 public struct SuiPassport has key {
     id: UID,
@@ -199,4 +206,17 @@ public fun hide_stamp(passport: &mut SuiPassport, stamp: &Stamp) {
         passport.points = passport.points + stamp::points(stamp);
         table::add<ID, bool>(&mut passport.collections, stamp_id, false);
     };
+}
+
+public fun set_exhibit(passport: &mut SuiPassport, exhibit: vector<ID>) {
+    let mut i = 0;
+    let len = exhibit.length();
+    assert!(len <= EXHIBIT_MAX, ETooMuchExhibit);
+
+    while (i < len) {
+        assert!(table::contains<ID, bool>(&passport.collections, exhibit[i]), EInvalidExhibit);
+        i = i + 1;
+    };
+
+    passport.exhibit = exhibit;
 }
