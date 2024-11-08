@@ -73,7 +73,7 @@ fun init(otw: SUI_PASSPORT, ctx: &mut TxContext) {
 
     let mut image_url: vector<u8> = b"https://suipassport.com/objectId/";
     image_url.append(b"{id}");
-    let project_url: vector<u8> = b"https://suipassport.com/project/";
+    let project_url: vector<u8> = b"https://suipassport.com/";
 
     let values = vector[
         b"{name}".to_string(),
@@ -157,6 +157,7 @@ public fun edit_passport(
     mut x: Option<String>,
     mut github: Option<String>,
     mut email: Option<String>,
+    clock: &Clock,
     ctx: &TxContext
 ) {
     if (name.is_some()) {
@@ -177,6 +178,7 @@ public fun edit_passport(
     if (email.is_some()) {
         passport.email = option::extract(&mut email);
     };
+    passport.last_time = clock::timestamp_ms(clock);
 
     emit(EditPassportEvent {
         sender: ctx.sender(),
@@ -184,7 +186,7 @@ public fun edit_passport(
     });
 }
 
-public fun show_stamp(passport: &mut SuiPassport, stamp: &Stamp) {
+public fun show_stamp(passport: &mut SuiPassport, stamp: &Stamp, clock: &Clock) {
     let stamp_id = object::id(stamp);
 
     if (table::contains<ID, bool>(&passport.collections, stamp_id)) {
@@ -194,9 +196,10 @@ public fun show_stamp(passport: &mut SuiPassport, stamp: &Stamp) {
         passport.points = passport.points + stamp::points(stamp);
         table::add<ID, bool>(&mut passport.collections, stamp_id, true);
     };
+    passport.last_time = clock::timestamp_ms(clock);
 }
 
-public fun hide_stamp(passport: &mut SuiPassport, stamp: &Stamp) {
+public fun hide_stamp(passport: &mut SuiPassport, stamp: &Stamp, clock: &Clock) {
     let stamp_id = object::id(stamp);
 
     if (table::contains<ID, bool>(&passport.collections, stamp_id)) {
@@ -206,9 +209,10 @@ public fun hide_stamp(passport: &mut SuiPassport, stamp: &Stamp) {
         passport.points = passport.points + stamp::points(stamp);
         table::add<ID, bool>(&mut passport.collections, stamp_id, false);
     };
+    passport.last_time = clock::timestamp_ms(clock);
 }
 
-public fun set_exhibit(passport: &mut SuiPassport, exhibit: vector<ID>) {
+public fun set_exhibit(passport: &mut SuiPassport, exhibit: vector<ID>, clock: &Clock) {
     let mut i = 0;
     let len = exhibit.length();
     assert!(len <= EXHIBIT_MAX, ETooMuchExhibit);
@@ -219,4 +223,13 @@ public fun set_exhibit(passport: &mut SuiPassport, exhibit: vector<ID>) {
     };
 
     passport.exhibit = exhibit;
+    passport.last_time = clock::timestamp_ms(clock);
+}
+
+public(package) fun set_last_time(passport: &mut SuiPassport, clock: &Clock) {
+    passport.last_time = clock::timestamp_ms(clock);
+}
+
+public fun points(passport: &SuiPassport): u64 {
+    passport.points
 }
