@@ -43,7 +43,7 @@ public struct OnlineEvent has key {
 #[allow(unused_field)]
 public struct StampMintInfo has store {
     name: String,
-    count: u64,
+    count: u32,
     image_url: String,
     points: u64,
     description: String,
@@ -195,6 +195,7 @@ public fun send_stamp(
     let stamp_info = df::borrow_mut<String, StampMintInfo>(&mut online_event.id, name);
     stamp_info.count = stamp_info.count + 1;
     let mut stamp_name = name;
+    stamp_name.append(b"#".to_string());
     stamp_name.append(stamp_info.count.to_string());
     let stamp = Stamp {
         id: object::new(ctx),
