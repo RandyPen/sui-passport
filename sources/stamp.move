@@ -5,16 +5,16 @@ use std::{
 };
 use sui::{
     table::{Self, Table},
-    clock::{Self, Clock},
+    // clock::{Self, Clock},
     dynamic_field as df,
     event::emit,
     display,
     package
 };
-use sui_passport::sui_passport::{
-    SuiPassport,
-    set_last_time
-};
+// use sui_passport::sui_passport::{
+//     SuiPassport,
+//     set_last_time
+// };
 
 public struct STAMP has drop {}
 
@@ -211,6 +211,42 @@ public fun send_stamp(
         stamp: object::id(&stamp),
     });
     transfer::transfer(stamp, recipient);
+}
+
+public fun batch_send_stamp(
+    _admin: &AdminCap, 
+    online_event: &mut OnlineEvent,
+    name: String,
+    mut recipients: vector<address>,
+    ctx: &mut TxContext
+) {
+    assert!(online_event.stamp_type.contains(&name));
+    let stamp_info = df::borrow_mut<String, StampMintInfo>(&mut online_event.id, name);
+    let len = vector::length(&recipients);
+    let mut i = 0;
+
+    while (i < len) {
+        let recipient = vector::pop_back(&mut recipients);
+        stamp_info.count = stamp_info.count + 1;
+        let mut stamp_name = name;
+        stamp_name.append(b"#".to_string());
+        stamp_name.append(stamp_info.count.to_string());
+        let stamp = Stamp {
+            id: object::new(ctx),
+            name: stamp_name,
+            image_url: stamp_info.image_url,
+            points: stamp_info.points,
+            event: online_event.event,
+            description: stamp_info.description,
+        };
+        emit(SendOnlineEventStampEvent {
+            recipient,
+            event: online_event.event,
+            stamp: object::id(&stamp),
+        });
+        transfer::transfer(stamp, recipient);
+        i = i + 1;
+    };
 }
 
 public fun name(stamp: &Stamp): String {
