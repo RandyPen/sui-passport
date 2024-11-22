@@ -38,7 +38,7 @@ public struct SuiPassport has key {
 
 public struct SuiPassportRecord has key {
     id: UID,
-    record: Table<address, bool>,
+    record: Table<address, u64>,
 }
 
 public struct MintPassportEvent has copy, drop {
@@ -60,7 +60,7 @@ fun init(otw: SUI_PASSPORT, ctx: &mut TxContext) {
     let deployer = ctx.sender();
     let sui_passport_record = SuiPassportRecord {
         id: object::new(ctx),
-        record: table::new<address, bool>(ctx),
+        record: table::new<address, u64>(ctx),
     };
     transfer::share_object(sui_passport_record);
 
@@ -107,7 +107,7 @@ public fun mint_passport(
     ctx: &mut TxContext
 ) {
     let sender = ctx.sender();
-    table::add<address, bool>(&mut record.record, sender, true);
+    table::add<address, u64>(&mut record.record, sender, 0);
     let passport = SuiPassport {
         id: object::new(ctx),
         name,
@@ -134,7 +134,7 @@ public fun drop_passport(
     ctx: &mut TxContext
 ) {
     let sender = ctx.sender();
-    table::remove<address, bool>(&mut record.record, sender);
+    table::remove<address, u64>(&mut record.record, sender);
 
     emit(DropPassportEvent {
         sender,
@@ -186,7 +186,11 @@ public fun edit_passport(
     });
 }
 
-public fun show_stamp(passport: &mut SuiPassport, stamp: &Stamp, clock: &Clock) {
+public fun show_stamp(
+    passport: &mut SuiPassport, 
+    stamp: &Stamp, 
+    clock: &Clock
+) {
     let stamp_id = object::id(stamp);
 
     if (table::contains<ID, bool>(&passport.collections, stamp_id)) {
@@ -199,7 +203,11 @@ public fun show_stamp(passport: &mut SuiPassport, stamp: &Stamp, clock: &Clock) 
     passport.last_time = clock::timestamp_ms(clock);
 }
 
-public fun hide_stamp(passport: &mut SuiPassport, stamp: &Stamp, clock: &Clock) {
+public fun hide_stamp(
+    passport: &mut SuiPassport, 
+    stamp: &Stamp, 
+    clock: &Clock
+) {
     let stamp_id = object::id(stamp);
 
     if (table::contains<ID, bool>(&passport.collections, stamp_id)) {
@@ -212,7 +220,11 @@ public fun hide_stamp(passport: &mut SuiPassport, stamp: &Stamp, clock: &Clock) 
     passport.last_time = clock::timestamp_ms(clock);
 }
 
-public fun set_exhibit(passport: &mut SuiPassport, exhibit: vector<ID>, clock: &Clock) {
+public fun set_exhibit(
+    passport: &mut SuiPassport, 
+    exhibit: vector<ID>, 
+    clock: &Clock
+) {
     let mut i = 0;
     let len = exhibit.length();
     assert!(len <= EXHIBIT_MAX, ETooMuchExhibit);
@@ -232,4 +244,13 @@ public(package) fun set_last_time(passport: &mut SuiPassport, clock: &Clock) {
 
 public fun points(passport: &SuiPassport): u64 {
     passport.points
+}
+
+public fun update_points(
+    record: &mut SuiPassportRecord, 
+    passport: &SuiPassport,
+    ctx: &TxContext
+) {
+    let points = &mut record.record[ctx.sender()];
+    *points = points(passport);
 }
