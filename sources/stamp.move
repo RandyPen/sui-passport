@@ -113,13 +113,13 @@ public fun set_admin(_admin: &AdminCap, recipient: address, ctx: &mut TxContext)
     transfer::public_transfer(admin_cap, recipient);
 }
 
-public fun open_online_event(
+public fun create_online_event(
     _admin: &AdminCap, 
     online_event_record: &mut OnlineEventRecord,
     event: String, 
     description: String,
     ctx: &mut TxContext
-) {
+): OnlineEvent {
     let online_event = OnlineEvent {
         id: object::new(ctx),
         event,
@@ -127,6 +127,12 @@ public fun open_online_event(
         stamp_type: vector::empty(),
     };
     table::add<String, ID>(&mut online_event_record.record, event, object::id(&online_event));
+    online_event
+}
+
+public fun share_online_event(
+    online_event: OnlineEvent
+) {
     transfer::share_object(online_event);
 }
 
