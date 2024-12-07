@@ -58,6 +58,14 @@ public struct Stamp has key {
     description: String,
 }
 
+public struct SetOnlineEventStampEvent has copy, drop {
+    online_event: ID,
+    name: String,
+    image_url: String,
+    points: u64,
+    description: String,
+}
+
 public struct SendOnlineEventStampEvent has copy, drop {
     recipient: address,
     event: String,
@@ -152,6 +160,8 @@ public fun set_online_event_description(
     online_event.description = description;
 }
 
+
+
 public fun set_online_event_stamp(
     _admin: &AdminCap, 
     online_event: &mut OnlineEvent, 
@@ -162,7 +172,7 @@ public fun set_online_event_stamp(
 ) {
     assert!(!online_event.stamp_type.contains(&name));
     online_event.stamp_type.push_back(name);
-
+    
     let stamp_info = StampMintInfo {
         name,
         count: 0,
@@ -171,6 +181,14 @@ public fun set_online_event_stamp(
         description
     };
     df::add<String, StampMintInfo>(&mut online_event.id, name, stamp_info);
+    
+    emit(SetOnlineEventStampEvent {
+        online_event: object::id(online_event),
+        name,
+        image_url,
+        points,
+        description,
+    });
 }
 
 public fun remove_online_event_stamp(
