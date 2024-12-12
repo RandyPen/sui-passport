@@ -11,10 +11,11 @@ use sui::{
     display,
     package
 };
-// use sui_passport::sui_passport::{
-//     SuiPassport,
-//     set_last_time
-// };
+use sui_passport::sui_passport::{
+    SuiPassport,
+    set_last_time,
+    show_stamp
+};
 
 public struct STAMP has drop {}
 
@@ -22,18 +23,18 @@ public struct AdminCap has key, store {
     id: UID,
 }
 
-public struct OnlineEventRecord has key {
+public struct EventRecord has key {
     id: UID,
     record: Table<String, ID>,
 }
 
-public struct OfflineEventRecord has key {
-    id: UID,
-    record: Table<String, ID>,
-}
+// public struct ClaimEventRecord has key {
+//     id: UID,
+//     record: Table<String, ID>,
+// }
 
 #[allow(unused_field)]
-public struct OnlineEvent has key {
+public struct Event has key {
     id: UID,
     event: String,
     description: String,
@@ -58,7 +59,13 @@ public struct Stamp has key {
     description: String,
 }
 
-public struct SendOnlineEventStampEvent has copy, drop {
+public struct SendEventStampEvent has copy, drop {
+    recipient: address,
+    event: String,
+    stamp: ID,
+}
+
+public struct ClaimEventStampEvent has copy, drop {
     recipient: address,
     event: String,
     stamp: ID,
@@ -95,17 +102,11 @@ fun init(otw: STAMP, ctx: &mut TxContext) {
     transfer::public_transfer(publisher, deployer);
     transfer::public_transfer(stamp_display, deployer);
 
-    let online_event_record = OnlineEventRecord {
+    let event_record = EventRecord {
         id: object::new(ctx),
         record: table::new<String, ID>(ctx),
     };
-    transfer::share_object(online_event_record);
-
-    let offline_event_record = OfflineEventRecord {
-        id: object::new(ctx),
-        record: table::new<String, ID>(ctx),
-    };
-    transfer::share_object(offline_event_record);
+    transfer::share_object(event_record);
 }
 
 public fun set_admin(_admin: &AdminCap, recipient: address, ctx: &mut TxContext) {
@@ -113,55 +114,55 @@ public fun set_admin(_admin: &AdminCap, recipient: address, ctx: &mut TxContext)
     transfer::public_transfer(admin_cap, recipient);
 }
 
-public fun create_online_event(
+public fun create_event(
     _admin: &AdminCap, 
-    online_event_record: &mut OnlineEventRecord,
+    event_record: &mut EventRecord,
     event: String, 
     description: String,
     ctx: &mut TxContext
-): OnlineEvent {
-    let online_event = OnlineEvent {
+): Event {
+    let new_event = Event {
         id: object::new(ctx),
         event,
         description,
         stamp_type: vector::empty(),
     };
-    table::add<String, ID>(&mut online_event_record.record, event, object::id(&online_event));
-    online_event
+    table::add<String, ID>(&mut event_record.record, event, object::id(&new_event));
+    new_event
 }
 
-public fun share_online_event(
-    online_event: OnlineEvent
+public fun share_event(
+    event: Event
 ) {
-    transfer::share_object(online_event);
+    transfer::share_object(event);
 }
 
-public fun set_online_event_name(
+public fun set_event_name(
     _admin: &AdminCap, 
-    online_event: &mut OnlineEvent, 
-    event: String
+    event: &mut Event, 
+    name: String
 ) {
-    online_event.event = event;
+    event.event = name;
 }
 
-public fun set_online_event_description(
+public fun set_event_description(
     _admin: &AdminCap, 
-    online_event: &mut OnlineEvent, 
+    event: &mut Event, 
     description: String
 ) {
-    online_event.description = description;
+    event.description = description;
 }
 
-public fun set_online_event_stamp(
+public fun set_event_stamp(
     _admin: &AdminCap, 
-    online_event: &mut OnlineEvent, 
+    event: &mut Event, 
     name: String,
     image_url: String,
     points: u64,
     description: String,
 ) {
-    assert!(!online_event.stamp_type.contains(&name));
-    online_event.stamp_type.push_back(name);
+    assert!(!event.stamp_type.contains(&name));
+    event.stamp_type.push_back(name);
 
     let stamp_info = StampMintInfo {
         name,
@@ -170,35 +171,35 @@ public fun set_online_event_stamp(
         points,
         description
     };
-    df::add<String, StampMintInfo>(&mut online_event.id, name, stamp_info);
+    df::add<String, StampMintInfo>(&mut event.id, name, stamp_info);
 }
 
-public fun remove_online_event_stamp(
+public fun remove_event_stamp(
     _admin: &AdminCap, 
-    online_event: &mut OnlineEvent, 
+    event: &mut Event, 
     name: String,
 ) {
-    let stamp_info = df::borrow<String, StampMintInfo>(&online_event.id, name);
+    let stamp_info = df::borrow<String, StampMintInfo>(&event.id, name);
     assert!(stamp_info.count == 0);
-    let stamp_info = df::remove<String, StampMintInfo>(&mut online_event.id, name);
+    let stamp_info = df::remove<String, StampMintInfo>(&mut event.id, name);
     let StampMintInfo { .. } = stamp_info;
-    let index = online_event.stamp_type.find_index!(|e| *e == name).destroy_some();
-    online_event.stamp_type.swap_remove(index);
+    let index = event.stamp_type.find_index!(|e| *e == name).destroy_some();
+    event.stamp_type.swap_remove(index);
 }
 
-public fun online_event_stamp_type(online_event: &OnlineEvent): vector<String> {
-    online_event.stamp_type
+public fun event_stamp_type(event: &Event): vector<String> {
+    event.stamp_type
 }
 
 public fun send_stamp(
     _admin: &AdminCap, 
-    online_event: &mut OnlineEvent,
+    event: &mut Event,
     name: String,
     recipient: address,
     ctx: &mut TxContext
 ) {
-    assert!(online_event.stamp_type.contains(&name));
-    let stamp_info = df::borrow_mut<String, StampMintInfo>(&mut online_event.id, name);
+    assert!(event.stamp_type.contains(&name));
+    let stamp_info = df::borrow_mut<String, StampMintInfo>(&mut event.id, name);
     stamp_info.count = stamp_info.count + 1;
     let mut stamp_name = name;
     stamp_name.append(b"#".to_string());
@@ -208,12 +209,12 @@ public fun send_stamp(
         name: stamp_name,
         image_url: stamp_info.image_url,
         points: stamp_info.points,
-        event: online_event.event,
+        event: event.event,
         description: stamp_info.description,
     };
-    emit(SendOnlineEventStampEvent {
+    emit(SendEventStampEvent {
         recipient,
-        event: online_event.event,
+        event: event.event,
         stamp: object::id(&stamp),
     });
     transfer::transfer(stamp, recipient);
@@ -221,13 +222,13 @@ public fun send_stamp(
 
 public fun batch_send_stamp(
     _admin: &AdminCap, 
-    online_event: &mut OnlineEvent,
+    event: &mut Event,
     name: String,
     mut recipients: vector<address>,
     ctx: &mut TxContext
 ) {
-    assert!(online_event.stamp_type.contains(&name));
-    let stamp_info = df::borrow_mut<String, StampMintInfo>(&mut online_event.id, name);
+    assert!(event.stamp_type.contains(&name));
+    let stamp_info = df::borrow_mut<String, StampMintInfo>(&mut event.id, name);
     let len = vector::length(&recipients);
     let mut i = 0;
 
@@ -242,18 +243,19 @@ public fun batch_send_stamp(
             name: stamp_name,
             image_url: stamp_info.image_url,
             points: stamp_info.points,
-            event: online_event.event,
+            event: event.event,
             description: stamp_info.description,
         };
-        emit(SendOnlineEventStampEvent {
+        emit(SendEventStampEvent {
             recipient,
-            event: online_event.event,
+            event: event.event,
             stamp: object::id(&stamp),
         });
         transfer::transfer(stamp, recipient);
         i = i + 1;
     };
 }
+
 
 public fun name(stamp: &Stamp): String {
     stamp.name
