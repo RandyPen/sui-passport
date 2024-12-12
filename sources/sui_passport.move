@@ -246,6 +246,10 @@ public fun points(passport: &SuiPassport): u64 {
     passport.points
 }
 
+public fun last_time(passport: &SuiPassport): u64 {
+    passport.last_time
+}
+
 public fun update_points(
     record: &mut SuiPassportRecord, 
     passport: &SuiPassport,

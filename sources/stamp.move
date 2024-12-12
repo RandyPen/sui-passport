@@ -5,16 +5,9 @@ use std::{
 };
 use sui::{
     table::{Self, Table},
-    // clock::{Self, Clock},
     dynamic_field as df,
-    event::emit,
     display,
     package
-};
-use sui_passport::sui_passport::{
-    SuiPassport,
-    set_last_time,
-    show_stamp
 };
 
 public struct STAMP has drop {}
@@ -27,11 +20,6 @@ public struct EventRecord has key {
     id: UID,
     record: Table<String, ID>,
 }
-
-// public struct ClaimEventRecord has key {
-//     id: UID,
-//     record: Table<String, ID>,
-// }
 
 #[allow(unused_field)]
 public struct Event has key {
@@ -57,18 +45,6 @@ public struct Stamp has key {
     points: u64,
     event: String,
     description: String,
-}
-
-public struct SendEventStampEvent has copy, drop {
-    recipient: address,
-    event: String,
-    stamp: ID,
-}
-
-public struct ClaimEventStampEvent has copy, drop {
-    recipient: address,
-    event: String,
-    stamp: ID,
 }
 
 fun init(otw: STAMP, ctx: &mut TxContext) {
@@ -191,71 +167,33 @@ public fun event_stamp_type(event: &Event): vector<String> {
     event.stamp_type
 }
 
-public fun send_stamp(
-    _admin: &AdminCap, 
+public(package) fun new(
     event: &mut Event,
     name: String,
-    recipient: address,
     ctx: &mut TxContext
-) {
+): Stamp {
     assert!(event.stamp_type.contains(&name));
     let stamp_info = df::borrow_mut<String, StampMintInfo>(&mut event.id, name);
     stamp_info.count = stamp_info.count + 1;
     let mut stamp_name = name;
     stamp_name.append(b"#".to_string());
     stamp_name.append(stamp_info.count.to_string());
-    let stamp = Stamp {
+    Stamp {
         id: object::new(ctx),
         name: stamp_name,
         image_url: stamp_info.image_url,
         points: stamp_info.points,
         event: event.event,
         description: stamp_info.description,
-    };
-    emit(SendEventStampEvent {
-        recipient,
-        event: event.event,
-        stamp: object::id(&stamp),
-    });
+    }
+}
+
+public(package) fun transfer_stamp(
+    stamp: Stamp,
+    recipient: address
+) {
     transfer::transfer(stamp, recipient);
 }
-
-public fun batch_send_stamp(
-    _admin: &AdminCap, 
-    event: &mut Event,
-    name: String,
-    mut recipients: vector<address>,
-    ctx: &mut TxContext
-) {
-    assert!(event.stamp_type.contains(&name));
-    let stamp_info = df::borrow_mut<String, StampMintInfo>(&mut event.id, name);
-    let len = vector::length(&recipients);
-    let mut i = 0;
-
-    while (i < len) {
-        let recipient = vector::pop_back(&mut recipients);
-        stamp_info.count = stamp_info.count + 1;
-        let mut stamp_name = name;
-        stamp_name.append(b"#".to_string());
-        stamp_name.append(stamp_info.count.to_string());
-        let stamp = Stamp {
-            id: object::new(ctx),
-            name: stamp_name,
-            image_url: stamp_info.image_url,
-            points: stamp_info.points,
-            event: event.event,
-            description: stamp_info.description,
-        };
-        emit(SendEventStampEvent {
-            recipient,
-            event: event.event,
-            stamp: object::id(&stamp),
-        });
-        transfer::transfer(stamp, recipient);
-        i = i + 1;
-    };
-}
-
 
 public fun name(stamp: &Stamp): String {
     stamp.name
@@ -275,4 +213,8 @@ public fun description(stamp: &Stamp): String {
 
 public fun event(stamp: &Stamp): String {
     stamp.event
+}
+
+public fun event_name(event: &Event): String {
+    event.event
 }
