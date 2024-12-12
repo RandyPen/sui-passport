@@ -6,6 +6,7 @@ use std::{
 use sui::{
     table::{Self, Table},
     dynamic_field as df,
+    event::emit,
     display,
     package
 };
@@ -44,6 +45,14 @@ public struct Stamp has key {
     image_url: String,
     points: u64,
     event: String,
+    description: String,
+}
+
+public struct SetEventStamp has copy, drop {
+    event: ID,
+    name: String,
+    image_url: String,
+    points: u64,
     description: String,
 }
 
@@ -148,6 +157,13 @@ public fun set_event_stamp(
         description
     };
     df::add<String, StampMintInfo>(&mut event.id, name, stamp_info);
+    emit(SetEventStamp {
+        event: object::id(event),
+        name,
+        image_url,
+        points,
+        description,
+    });
 }
 
 public fun remove_event_stamp(
