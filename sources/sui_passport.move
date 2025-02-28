@@ -11,7 +11,7 @@ use sui::{
     package
 };
 use sui_passport::stamp::{Self, Stamp};
-use sui_passport::utils::{Version, check_version};
+use sui_passport::version::{Version, check_version};
 
 public struct SUI_PASSPORT has drop {}
 

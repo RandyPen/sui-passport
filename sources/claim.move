@@ -21,7 +21,7 @@ use sui_passport::stamp::{
     event_name,
     transfer_stamp
 };
-use sui_passport::utils::{Version, check_version};
+use sui_passport::version::{Version, check_version};
 
 const PK: vector<u8> = vector[185, 198, 238, 22, 48, 
     239, 62, 113, 17, 68, 166, 72, 219, 6, 187, 178, 

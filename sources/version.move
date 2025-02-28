@@ -1,4 +1,4 @@
-module sui_passport::utils;
+module sui_passport::version;
 
 use sui_passport::stamp::AdminCap;
 

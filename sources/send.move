@@ -13,7 +13,7 @@ use sui_passport::stamp::{
     event_name,
     transfer_stamp
 };
-use sui_passport::utils::{Version, check_version};
+use sui_passport::version::{Version, check_version};
 
 public struct SendStampEvent has copy, drop {
     recipient: address,

@@ -13,7 +13,7 @@ use sui::{
 
 public struct STAMP has drop {}
 
-public struct AdminCap has key, store {
+public struct AdminCap has key {
     id: UID,
 }
 
@@ -59,7 +59,7 @@ public struct SetEventStamp has copy, drop {
 fun init(otw: STAMP, ctx: &mut TxContext) {
     let deployer = ctx.sender();
     let admin_cap = AdminCap { id: object::new(ctx) };
-    transfer::public_transfer(admin_cap, deployer);
+    transfer::transfer(admin_cap, deployer);
 
     let keys = vector[
         b"name".to_string(),
@@ -96,7 +96,7 @@ fun init(otw: STAMP, ctx: &mut TxContext) {
 
 public fun set_admin(_admin: &AdminCap, recipient: address, ctx: &mut TxContext) {
     let admin_cap = AdminCap { id: object::new(ctx) };
-    transfer::public_transfer(admin_cap, recipient);
+    transfer::transfer(admin_cap, recipient);
 }
 
 public fun create_event(
