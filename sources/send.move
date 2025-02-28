@@ -8,6 +8,8 @@ use sui::{
 };
 use sui_passport::stamp::{
     AdminCap,
+    BlockAdmin,
+    check_admin,
     Event,
     new,
     event_name,
@@ -22,13 +24,15 @@ public struct SendStampEvent has copy, drop {
 }
 
 public fun send_stamp(
-    _admin: &AdminCap, 
+    admin: &AdminCap, 
+    block: &BlockAdmin,
     event: &mut Event,
     name: String,
     recipient: address,
     version: &Version,
     ctx: &mut TxContext
 ) {
+    check_admin(admin, block);
     let stamp = new(event, name, ctx);
     check_version(version);
     emit(SendStampEvent {
@@ -40,13 +44,15 @@ public fun send_stamp(
 }
 
 public fun batch_send_stamp(
-    _admin: &AdminCap, 
+    admin: &AdminCap, 
+    block: &BlockAdmin,
     event: &mut Event,
     name: String,
     mut recipients: vector<address>,
     version: &Version,
     ctx: &mut TxContext
 ) {
+    check_admin(admin, block);
     let len = vector::length(&recipients);
     let mut i = 0;
     check_version(version);
