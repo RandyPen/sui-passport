@@ -11,6 +11,7 @@ use sui::{
     package
 };
 use sui_passport::stamp::{Self, Stamp};
+use sui_passport::version::{Version, check_version};
 
 public struct SUI_PASSPORT has drop {}
 
@@ -103,10 +104,12 @@ public fun mint_passport(
     x: String,
     github: String,
     email: String,
+    version: &Version,
     clock: &Clock,
     ctx: &mut TxContext
 ) {
     let sender = ctx.sender();
+    check_version(version);
     table::add<address, u64>(&mut record.record, sender, 0);
     let passport = SuiPassport {
         id: object::new(ctx),
@@ -131,9 +134,11 @@ public fun mint_passport(
 public fun drop_passport(
     record: &mut SuiPassportRecord, 
     passport: SuiPassport,
+    version: &Version,
     ctx: &mut TxContext
 ) {
     let sender = ctx.sender();
+    check_version(version);
     table::remove<address, u64>(&mut record.record, sender);
 
     emit(DropPassportEvent {
@@ -157,9 +162,11 @@ public fun edit_passport(
     mut x: Option<String>,
     mut github: Option<String>,
     mut email: Option<String>,
+    version: &Version,
     clock: &Clock,
     ctx: &TxContext
 ) {
+    check_version(version);
     if (name.is_some()) {
         passport.name = option::extract(&mut name);
     };
@@ -189,9 +196,11 @@ public fun edit_passport(
 public fun show_stamp(
     passport: &mut SuiPassport, 
     stamp: &Stamp, 
+    version: &Version,
     clock: &Clock
 ) {
     let stamp_id = object::id(stamp);
+    check_version(version);
 
     if (table::contains<ID, bool>(&passport.collections, stamp_id)) {
         let display = &mut passport.collections[stamp_id];
@@ -206,9 +215,11 @@ public fun show_stamp(
 public fun hide_stamp(
     passport: &mut SuiPassport, 
     stamp: &Stamp, 
+    version: &Version,
     clock: &Clock
 ) {
     let stamp_id = object::id(stamp);
+    check_version(version);
 
     if (table::contains<ID, bool>(&passport.collections, stamp_id)) {
         let display = &mut passport.collections[stamp_id];
@@ -223,11 +234,13 @@ public fun hide_stamp(
 public fun set_exhibit(
     passport: &mut SuiPassport, 
     exhibit: vector<ID>, 
+    version: &Version,
     clock: &Clock
 ) {
     let mut i = 0;
     let len = exhibit.length();
     assert!(len <= EXHIBIT_MAX, ETooMuchExhibit);
+    check_version(version);
 
     while (i < len) {
         assert!(table::contains<ID, bool>(&passport.collections, exhibit[i]), EInvalidExhibit);
@@ -253,8 +266,10 @@ public fun last_time(passport: &SuiPassport): u64 {
 public fun update_points(
     record: &mut SuiPassportRecord, 
     passport: &SuiPassport,
+    version: &Version,
     ctx: &TxContext
 ) {
+    check_version(version);
     let points = &mut record.record[ctx.sender()];
     *points = points(passport);
 }

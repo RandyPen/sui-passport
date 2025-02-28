@@ -13,8 +13,17 @@ use sui::{
 
 public struct STAMP has drop {}
 
-public struct AdminCap has key, store {
+public struct SuperAdminCap has key {
     id: UID,
+}
+
+public struct AdminCap has key {
+    id: UID,
+}
+
+public struct BlockAdmin has key {
+    id: UID,
+    block: Table<ID, bool>,
 }
 
 public struct EventRecord has key {
@@ -59,7 +68,14 @@ public struct SetEventStamp has copy, drop {
 fun init(otw: STAMP, ctx: &mut TxContext) {
     let deployer = ctx.sender();
     let admin_cap = AdminCap { id: object::new(ctx) };
-    transfer::public_transfer(admin_cap, deployer);
+    transfer::transfer(admin_cap, deployer);
+    let super_admin = SuperAdminCap { id: object::new(ctx) };
+    transfer::transfer(super_admin, deployer);
+    let admin_block = BlockAdmin {
+        id: object::new(ctx),
+        block: table::new<ID, bool>(ctx),
+    };
+    transfer::share_object(admin_block);
 
     let keys = vector[
         b"name".to_string(),
@@ -94,18 +110,29 @@ fun init(otw: STAMP, ctx: &mut TxContext) {
     transfer::share_object(event_record);
 }
 
-public fun set_admin(_admin: &AdminCap, recipient: address, ctx: &mut TxContext) {
+public fun set_admin(_super_admin: &SuperAdminCap, recipient: address, ctx: &mut TxContext) {
     let admin_cap = AdminCap { id: object::new(ctx) };
-    transfer::public_transfer(admin_cap, recipient);
+    transfer::transfer(admin_cap, recipient);
+}
+
+public fun block_admin(_super_admin: &SuperAdminCap, block_admin: &mut BlockAdmin, admin_id: ID) {
+    assert!(!table::contains<ID, bool>(&block_admin.block, admin_id));
+    table::add<ID, bool>(&mut block_admin.block, admin_id, false);
+}
+
+public(package) fun check_admin(admin_cap: &AdminCap, block_admin: &BlockAdmin) {
+    assert!(!table::contains<ID, bool>(&block_admin.block, object::id(admin_cap)));
 }
 
 public fun create_event(
-    _admin: &AdminCap, 
+    admin: &AdminCap, 
+    block_admin: &BlockAdmin,
     event_record: &mut EventRecord,
     event: String, 
     description: String,
     ctx: &mut TxContext
 ): Event {
+    check_admin(admin, block_admin);
     let new_event = Event {
         id: object::new(ctx),
         event,
@@ -123,29 +150,35 @@ public fun share_event(
 }
 
 public fun set_event_name(
-    _admin: &AdminCap, 
+    admin: &AdminCap, 
+    block_admin: &BlockAdmin,
     event: &mut Event, 
     name: String
 ) {
+    check_admin(admin, block_admin);
     event.event = name;
 }
 
 public fun set_event_description(
-    _admin: &AdminCap, 
+    admin: &AdminCap, 
+    block_admin: &BlockAdmin,
     event: &mut Event, 
     description: String
 ) {
+    check_admin(admin, block_admin);
     event.description = description;
 }
 
 public fun set_event_stamp(
-    _admin: &AdminCap, 
+    admin: &AdminCap, 
+    block_admin: &BlockAdmin,
     event: &mut Event, 
     name: String,
     image_url: String,
     points: u64,
     description: String,
 ) {
+    check_admin(admin, block_admin);
     assert!(!event.stamp_type.contains(&name));
     event.stamp_type.push_back(name);
 
@@ -167,10 +200,12 @@ public fun set_event_stamp(
 }
 
 public fun remove_event_stamp(
-    _admin: &AdminCap, 
+    admin: &AdminCap, 
+    block_admin: &BlockAdmin,
     event: &mut Event, 
     name: String,
 ) {
+    check_admin(admin, block_admin);
     let stamp_info = df::borrow<String, StampMintInfo>(&event.id, name);
     assert!(stamp_info.count == 0);
     let stamp_info = df::remove<String, StampMintInfo>(&mut event.id, name);
