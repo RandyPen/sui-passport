@@ -21,6 +21,7 @@ use sui_passport::stamp::{
     event_name,
     transfer_stamp
 };
+use sui_passport::utils::{Version, check_version};
 
 const PK: vector<u8> = vector[185, 198, 238, 22, 48, 
     239, 62, 113, 17, 68, 166, 72, 219, 6, 187, 178, 
@@ -44,11 +45,13 @@ public fun claim_stamp(
     passport: &mut SuiPassport,
     name: String,
     sig: vector<u8>,
+    version: &Version,
     clock: &Clock,
     ctx: &mut TxContext
 ) {
     let sender = ctx.sender();
     let stamp = new(event, name, ctx);
+    check_version(version);
 
     let claim_stamp_info = ClaimStampInfo {
         passport: object::id(passport),
@@ -67,6 +70,6 @@ public fun claim_stamp(
         stamp: object::id(&stamp),
     });
 
-    show_stamp(passport, &stamp, clock);
+    show_stamp(passport, &stamp, version, clock);
     transfer_stamp(stamp, sender);
 }
