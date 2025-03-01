@@ -120,6 +120,11 @@ public fun block_admin(_super_admin: &SuperAdminCap, block_admin: &mut BlockAdmi
     table::add<ID, bool>(&mut block_admin.block, admin_id, false);
 }
 
+public fun unblock_admin(_super_admin: &SuperAdminCap, block_admin: &mut BlockAdmin, admin_id: ID) {
+    assert!(table::contains<ID, bool>(&block_admin.block, admin_id));
+    table::remove<ID, bool>(&mut block_admin.block, admin_id);
+}
+
 public(package) fun check_admin(admin_cap: &AdminCap, block_admin: &BlockAdmin) {
     assert!(!table::contains<ID, bool>(&block_admin.block, object::id(admin_cap)));
 }
