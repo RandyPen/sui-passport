@@ -117,15 +117,15 @@ public fun set_admin(_super_admin: &SuperAdminCap, recipient: address, ctx: &mut
 }
 
 public fun block_admin(_super_admin: &SuperAdminCap, block_admin: &mut BlockAdmin, admin_id: ID) {
-    vec_set::insert<ID>(&mut block_admin.block, admin_id);
+    block_admin.block.insert(admin_id);
 }
 
 public fun unblock_admin(_super_admin: &SuperAdminCap, block_admin: &mut BlockAdmin, admin_id: ID) {
-    vec_set::remove<ID>(&mut block_admin.block, &admin_id);
+    block_admin.block.remove(&admin_id);
 }
 
 public(package) fun check_admin(admin_cap: &AdminCap, block_admin: &BlockAdmin) {
-    assert!(!vec_set::contains<ID>(&block_admin.block, &object::id(admin_cap)));
+    assert!(!block_admin.block.contains(&object::id(admin_cap)));
 }
 
 public fun create_event(
