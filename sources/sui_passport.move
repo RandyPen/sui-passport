@@ -202,12 +202,12 @@ public fun show_stamp(
     let stamp_id = object::id(stamp);
     check_version(version);
 
-    if (table::contains<ID, bool>(&passport.collections, stamp_id)) {
+    if (passport.collections.contains(stamp_id)) {
         let display = &mut passport.collections[stamp_id];
         *display = true;
     } else {
         passport.points = passport.points + stamp::points(stamp);
-        table::add<ID, bool>(&mut passport.collections, stamp_id, true);
+        passport.collections.add(stamp_id, true);
     };
     passport.last_time = clock::timestamp_ms(clock);
 }
@@ -221,12 +221,12 @@ public fun hide_stamp(
     let stamp_id = object::id(stamp);
     check_version(version);
 
-    if (table::contains<ID, bool>(&passport.collections, stamp_id)) {
+    if (passport.collections.contains(stamp_id)) {
         let display = &mut passport.collections[stamp_id];
         *display = false;
     } else {
         passport.points = passport.points + stamp::points(stamp);
-        table::add<ID, bool>(&mut passport.collections, stamp_id, false);
+        passport.collections.add(stamp_id, false);
     };
     passport.last_time = clock::timestamp_ms(clock);
 }
@@ -243,7 +243,7 @@ public fun set_exhibit(
     check_version(version);
 
     while (i < len) {
-        assert!(table::contains<ID, bool>(&passport.collections, exhibit[i]), EInvalidExhibit);
+        assert!(passport.collections.contains(exhibit[i]), EInvalidExhibit);
         i = i + 1;
     };
 

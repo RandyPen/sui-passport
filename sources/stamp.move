@@ -143,7 +143,7 @@ public fun create_event(
         description,
         stamp_type: vector::empty(),
     };
-    table::add<String, ID>(&mut event_record.record, event, object::id(&new_event));
+    event_record.record.add(event, object::id(&new_event));
     new_event
 }
 
