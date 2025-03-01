@@ -5,6 +5,7 @@ use std::{
 };
 use sui::{
     table::{Self, Table},
+    vec_set::{Self, VecSet},
     dynamic_field as df,
     event::emit,
     display,
@@ -23,7 +24,7 @@ public struct AdminCap has key {
 
 public struct BlockAdmin has key {
     id: UID,
-    block: Table<ID, bool>,
+    block: VecSet<ID>,
 }
 
 public struct EventRecord has key {
@@ -73,7 +74,7 @@ fun init(otw: STAMP, ctx: &mut TxContext) {
     transfer::transfer(super_admin, deployer);
     let admin_block = BlockAdmin {
         id: object::new(ctx),
-        block: table::new<ID, bool>(ctx),
+        block: vec_set::empty<ID>(),
     };
     transfer::share_object(admin_block);
 
@@ -116,12 +117,15 @@ public fun set_admin(_super_admin: &SuperAdminCap, recipient: address, ctx: &mut
 }
 
 public fun block_admin(_super_admin: &SuperAdminCap, block_admin: &mut BlockAdmin, admin_id: ID) {
-    assert!(!table::contains<ID, bool>(&block_admin.block, admin_id));
-    table::add<ID, bool>(&mut block_admin.block, admin_id, false);
+    block_admin.block.insert(admin_id);
+}
+
+public fun unblock_admin(_super_admin: &SuperAdminCap, block_admin: &mut BlockAdmin, admin_id: ID) {
+    block_admin.block.remove(&admin_id);
 }
 
 public(package) fun check_admin(admin_cap: &AdminCap, block_admin: &BlockAdmin) {
-    assert!(!table::contains<ID, bool>(&block_admin.block, object::id(admin_cap)));
+    assert!(!block_admin.block.contains(&object::id(admin_cap)));
 }
 
 public fun create_event(
@@ -139,7 +143,7 @@ public fun create_event(
         description,
         stamp_type: vector::empty(),
     };
-    table::add<String, ID>(&mut event_record.record, event, object::id(&new_event));
+    event_record.record.add(event, object::id(&new_event));
     new_event
 }
 
