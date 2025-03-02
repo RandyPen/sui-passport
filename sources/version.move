@@ -1,6 +1,6 @@
 module sui_passport::version;
 
-use sui_passport::stamp::AdminCap;
+use sui_passport::stamp::SuperAdminCap;
 
 // ====== Constants =======
 const VERSION: u64 = 1;
@@ -22,7 +22,7 @@ public fun check_version(version: &Version) {
     assert!(version.version == VERSION);
 }
 
-public fun update_version(_admin: &AdminCap, version: &mut Version) {
+public fun update_version(_admin: &SuperAdminCap, version: &mut Version) {
     assert!(version.version < VERSION);
     version.version = VERSION;
 }
