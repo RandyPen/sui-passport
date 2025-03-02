@@ -18,13 +18,9 @@ public struct SuperAdminCap has key {
     id: UID,
 }
 
-public struct AdminCap has key {
+public struct AdminSet has key {
     id: UID,
-}
-
-public struct BlockAdmin has key {
-    id: UID,
-    block: VecSet<ID>,
+    admin: VecSet<address>,
 }
 
 public struct EventRecord has key {
@@ -68,15 +64,13 @@ public struct SetEventStamp has copy, drop {
 
 fun init(otw: STAMP, ctx: &mut TxContext) {
     let deployer = ctx.sender();
-    let admin_cap = AdminCap { id: object::new(ctx) };
-    transfer::transfer(admin_cap, deployer);
     let super_admin = SuperAdminCap { id: object::new(ctx) };
     transfer::transfer(super_admin, deployer);
-    let admin_block = BlockAdmin {
+    let admin_set = AdminSet {
         id: object::new(ctx),
-        block: vec_set::empty<ID>(),
+        admin: vec_set::empty<address>(),
     };
-    transfer::share_object(admin_block);
+    transfer::share_object(admin_set);
 
     let keys = vector[
         b"name".to_string(),
@@ -111,32 +105,26 @@ fun init(otw: STAMP, ctx: &mut TxContext) {
     transfer::share_object(event_record);
 }
 
-public fun set_admin(_super_admin: &SuperAdminCap, recipient: address, ctx: &mut TxContext) {
-    let admin_cap = AdminCap { id: object::new(ctx) };
-    transfer::transfer(admin_cap, recipient);
+public fun set_admin(_super_admin: &SuperAdminCap, admin_set: &mut AdminSet, admin_address: address) {
+    admin_set.admin.insert(admin_address);
 }
 
-public fun block_admin(_super_admin: &SuperAdminCap, block_admin: &mut BlockAdmin, admin_id: ID) {
-    block_admin.block.insert(admin_id);
+public fun remove_admin(_super_admin: &SuperAdminCap, admin_set: &mut AdminSet, admin_address: address) {
+    admin_set.admin.remove(&admin_address);
 }
 
-public fun unblock_admin(_super_admin: &SuperAdminCap, block_admin: &mut BlockAdmin, admin_id: ID) {
-    block_admin.block.remove(&admin_id);
-}
-
-public(package) fun check_admin(admin_cap: &AdminCap, block_admin: &BlockAdmin) {
-    assert!(!block_admin.block.contains(&object::id(admin_cap)));
+public(package) fun check_admin(admin_set: &AdminSet, ctx: &TxContext) {
+    assert!(admin_set.admin.contains(&ctx.sender()));
 }
 
 public fun create_event(
-    admin: &AdminCap, 
-    block_admin: &BlockAdmin,
+    admin_set: &AdminSet,
     event_record: &mut EventRecord,
     event: String, 
     description: String,
     ctx: &mut TxContext
 ): Event {
-    check_admin(admin, block_admin);
+    check_admin(admin_set, ctx);
     let new_event = Event {
         id: object::new(ctx),
         event,
@@ -154,35 +142,35 @@ public fun share_event(
 }
 
 public fun set_event_name(
-    admin: &AdminCap, 
-    block_admin: &BlockAdmin,
+    admin_set: &AdminSet,
     event: &mut Event, 
-    name: String
+    name: String,
+    ctx: &TxContext,
 ) {
-    check_admin(admin, block_admin);
+    check_admin(admin_set, ctx);
     event.event = name;
 }
 
 public fun set_event_description(
-    admin: &AdminCap, 
-    block_admin: &BlockAdmin,
+    admin_set: &AdminSet,
     event: &mut Event, 
-    description: String
+    description: String,
+    ctx: &TxContext,
 ) {
-    check_admin(admin, block_admin);
+    check_admin(admin_set, ctx);
     event.description = description;
 }
 
 public fun set_event_stamp(
-    admin: &AdminCap, 
-    block_admin: &BlockAdmin,
+    admin_set: &AdminSet,
     event: &mut Event, 
     name: String,
     image_url: String,
     points: u64,
     description: String,
+    ctx: &TxContext,
 ) {
-    check_admin(admin, block_admin);
+    check_admin(admin_set, ctx);
     assert!(!event.stamp_type.contains(&name));
     event.stamp_type.push_back(name);
 
@@ -204,12 +192,12 @@ public fun set_event_stamp(
 }
 
 public fun remove_event_stamp(
-    admin: &AdminCap, 
-    block_admin: &BlockAdmin,
+    admin_set: &AdminSet,
     event: &mut Event, 
     name: String,
+    ctx: &TxContext,
 ) {
-    check_admin(admin, block_admin);
+    check_admin(admin_set, ctx);
     let stamp_info = df::borrow<String, StampMintInfo>(&event.id, name);
     assert!(stamp_info.count == 0);
     let stamp_info = df::remove<String, StampMintInfo>(&mut event.id, name);
