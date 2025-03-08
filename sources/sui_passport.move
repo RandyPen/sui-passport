@@ -31,9 +31,6 @@ public struct SuiPassport has key {
     exhibit: vector<ID>,
     collections: Table<ID, bool>,
     points: u64,
-    x: String,
-    github: String,
-    email: String,
     last_time: u64,
 }
 
@@ -101,9 +98,6 @@ public fun mint_passport(
     name: String,
     avatar: String,
     introduction: String,
-    x: String,
-    github: String,
-    email: String,
     version: &Version,
     clock: &Clock,
     ctx: &mut TxContext
@@ -119,9 +113,6 @@ public fun mint_passport(
         exhibit: vector::empty<ID>(),
         collections: table::new<ID, bool>(ctx),
         points: 0,
-        x,
-        github,
-        email,
         last_time: clock::timestamp_ms(clock),
     };
     emit(MintPassportEvent {
@@ -159,9 +150,6 @@ public fun edit_passport(
     mut name: Option<String>,
     mut avatar: Option<String>,
     mut introduction: Option<String>,
-    mut x: Option<String>,
-    mut github: Option<String>,
-    mut email: Option<String>,
     version: &Version,
     clock: &Clock,
     ctx: &TxContext
@@ -175,15 +163,6 @@ public fun edit_passport(
     };
     if (introduction.is_some()) {
         passport.introduction = option::extract(&mut introduction);
-    };
-    if (x.is_some()) {
-        passport.x = option::extract(&mut x);
-    };
-    if (github.is_some()) {
-        passport.github = option::extract(&mut github);
-    };
-    if (email.is_some()) {
-        passport.email = option::extract(&mut email);
     };
     passport.last_time = clock::timestamp_ms(clock);
 
