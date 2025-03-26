@@ -10,7 +10,12 @@ use sui::{
     display,
     package
 };
-use sui_passport::stamp::{Self, Stamp};
+use sui_passport::stamp::{
+    Self,
+    Stamp,
+    AdminSet,
+    check_admin
+};
 use sui_passport::version::{Version, check_version};
 
 public struct SUI_PASSPORT has drop {}
@@ -39,6 +44,11 @@ public struct SuiPassportRecord has key {
     record: Table<address, u64>,
 }
 
+public struct PrivatePointsRecord has key {
+    id: UID,
+    record: Table<address, u64>,
+}
+
 public struct MintPassportEvent has copy, drop {
     sender: address,
     passport: ID,
@@ -61,6 +71,11 @@ fun init(otw: SUI_PASSPORT, ctx: &mut TxContext) {
         record: table::new<address, u64>(ctx),
     };
     transfer::share_object(sui_passport_record);
+    let private_points_record = PrivatePointsRecord {
+        id: object::new(ctx),
+        record: table::new<address, u64>(ctx),
+    };
+    transfer::share_object(private_points_record);
 
     let keys = vector[
         b"name".to_string(),
@@ -244,11 +259,35 @@ public fun last_time(passport: &SuiPassport): u64 {
 
 public fun update_points(
     record: &mut SuiPassportRecord, 
+    private_points_record: &PrivatePointsRecord,
     passport: &SuiPassport,
     version: &Version,
     ctx: &TxContext
 ) {
     check_version(version);
-    let points = &mut record.record[ctx.sender()];
-    *points = points(passport);
+    let sender = ctx.sender();
+    let points = &mut record.record[sender];
+    if (private_points_record.record.contains(sender)) {
+        *points = points(passport) + *&private_points_record.record[sender];
+    } else {
+        *points = points(passport);
+    };
+}
+
+public fun admin_set_extra_points(
+    admin_set: &AdminSet,
+    private_points_record: &mut PrivatePointsRecord,
+    points: u64,
+    recipient: address,
+    version: &Version,
+    ctx: &mut TxContext
+) {
+    check_admin(admin_set, ctx);
+    check_version(version);
+    if (private_points_record.record.contains(recipient)) {
+        let new_points = &mut private_points_record.record[recipient];
+        *new_points = *new_points + points;
+    } else {
+        private_points_record.record.add<address, u64>(recipient, points);
+    };
 }
