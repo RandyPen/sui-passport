@@ -206,6 +206,24 @@ public fun remove_event_stamp(
     event.stamp_type.swap_remove(index);
 }
 
+public fun remove_event_stamp_v2(
+    admin_set: &AdminSet,
+    event_record: &mut EventRecord,
+    event: Event, 
+    name: String,
+    ctx: &TxContext,
+) {
+    check_admin(admin_set, ctx);
+    let stamp_info = df::borrow<String, StampMintInfo>(&event.id, name);
+    assert!(stamp_info.count == 0);
+    event_record.record.remove(event.event);
+    let Event {
+        id,
+        ..
+    } = event;
+    object::delete(id);
+}
+
 public fun event_stamp_type(event: &Event): vector<String> {
     event.stamp_type
 }
