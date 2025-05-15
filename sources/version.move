@@ -3,7 +3,7 @@ module sui_passport::version;
 use sui_passport::stamp::SuperAdminCap;
 
 // ====== Constants =======
-const VERSION: u64 = 1;
+const VERSION: u64 = 2;
 
 public struct Version has key {
     id: UID,
