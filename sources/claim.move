@@ -23,10 +23,7 @@ use sui_passport::stamp::{
 };
 use sui_passport::version::{Version, check_version};
 
-const PK: vector<u8> = vector[185, 198, 238, 22, 48, 
-    239, 62, 113, 17, 68, 166, 72, 219, 6, 187, 178, 
-    40, 79, 114, 116, 207, 190, 229, 63, 252, 238, 80, 
-    60, 193, 164, 146, 0];
+const PK: vector<u8> = vector[93,51,18,189,20,112,56,203,181,234,192,63,104,62,182,60,129,208,40,0,33,50,233,136,70,68,220,141,131,226,106,38];
 
 
 public struct ClaimStampEvent has copy, drop {
