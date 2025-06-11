@@ -10,7 +10,7 @@ use sui::{
     display,
     package
 };
-use sui_passport::stamp::{Self, Stamp};
+use sui_passport::stamp::{Self, Stamp, delete_stamp};
 use sui_passport::version::{Version, check_version};
 
 public struct SUI_PASSPORT has drop {}
@@ -228,6 +228,18 @@ public fun set_exhibit(
 
     passport.exhibit = exhibit;
     passport.last_time = clock::timestamp_ms(clock);
+}
+
+public fun delete_stamp_in_passport(
+    passport: &mut SuiPassport, 
+    stamp: Stamp,
+    version: &Version,
+) {
+    let stamp_id = object::id(&stamp);
+    check_version(version);
+    passport.points = passport.points - stamp.points();
+    passport.collections.remove(stamp_id);
+    delete_stamp(stamp);
 }
 
 public(package) fun set_last_time(passport: &mut SuiPassport, clock: &Clock) {

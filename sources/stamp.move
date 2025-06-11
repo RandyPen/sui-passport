@@ -241,6 +241,16 @@ public(package) fun transfer_stamp(
     transfer::transfer(stamp, recipient);
 }
 
+public(package) fun delete_stamp(
+    stamp: Stamp
+) {
+    let Stamp {
+        id,
+        ..
+    } = stamp;
+    object::delete(id);
+}
+
 public fun name(stamp: &Stamp): String {
     stamp.name
 }
